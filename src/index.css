@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+@theme {
+  --color-navy-950: #0A0E1A;
+  --color-navy-900: #0F1629;
+  --color-navy-800: #151D35;
+  --color-navy-700: #1E2A4A;
+  --color-navy-600: #263560;
+  --color-gold: #C9A84C;
+  --color-gold-light: #E8C96D;
+  --color-gold-dark: #A07830;
+  --color-cream: #F0E6C8;
+  --color-cream-muted: #A89B7A;
+}
+
+@layer base {
+  * { box-sizing: border-box; }
+  body {
+    background-color: #F0F4FF;
+    color: #1E293B;
+    font-family: "Inter", sans-serif;
+    margin: 0;
+    padding: 0;
+  }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #0F1629; }
+  ::-webkit-scrollbar-thumb { background: #C9A84C; border-radius: 3px; }
+}
+
+@layer utilities {
+  .gold-gradient-text {
+    background: linear-gradient(135deg, #C9A84C, #E8C96D, #C9A84C);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
+
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.5); }
+}
+
+@keyframes live-ring {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+.live-dot { animation: live-pulse 1.5s ease-in-out infinite; }
+.live-ring { animation: live-ring 1.5s ease-out infinite; }
