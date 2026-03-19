@@ -647,17 +647,51 @@ function MatchesPage() {
     </div>
   );
 }
-function MyTeamPage({ currentUser }) {
+function MyTeamPage({ currentUser, onUpdateUser }) {
+  const [editTarget, setEditTarget] = useState(null); // null | "name"
+  const [editValue, setEditValue] = useState("");
+  const [saved, setSaved] = useState(false);
+
   const team = SAMPLE_TEAMS.find(t => t.name === currentUser.name) || {
     ...currentUser, level: 3, wins: 0, losses: 0, draws: 0, logo: "⚽",
     desc: "まだ説明がありません。", members: 0, founded: 2026,
   };
   const cat = CATEGORIES.find(c => c.id === team.category);
+
+  const openEdit = (target) => {
+    if (target === "name") {
+      setEditValue(currentUser.name);
+      setEditTarget("name");
+      setSaved(false);
+    }
+  };
+
+  const handleSave = () => {
+    if (editTarget === "name") {
+      const trimmed = editValue.trim();
+      if (!trimmed) return;
+      onUpdateUser({ ...currentUser, name: trimmed });
+      setSaved(true);
+      setTimeout(() => {
+        setEditTarget(null);
+        setSaved(false);
+      }, 900);
+    }
+  };
+
+  const inputStyle = {
+    width: "100%", padding: "11px 14px", borderRadius: 9,
+    border: `1.5px solid ${T.accent}`, background: "#fff",
+    color: T.text, fontSize: 15, outline: "none", boxSizing: "border-box",
+    fontFamily: "'Noto Sans JP', sans-serif", transition: "border 0.15s",
+  };
+
   return (
     <div style={{ padding: "32px 20px", maxWidth: 900, margin: "0 auto" }}>
       <h2 style={{ fontSize: 24, fontFamily: "'Oswald', sans-serif", color: T.accent, letterSpacing: 2, marginBottom: 24, fontWeight: 700 }}>⚽ マイチーム</h2>
       <Card hover={false} style={{ borderTop: `4px solid ${cat?.color || T.accent}` }}>
         <div style={{ padding: 32 }}>
+          {/* チームヘッダー */}
           <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 24, flexWrap: "wrap" }}>
             <div style={{
               width: 80, height: 80, borderRadius: "50%",
@@ -666,13 +700,15 @@ function MyTeamPage({ currentUser }) {
               border: `3px solid ${cat?.color || T.accent}30`,
             }}>{team.logo}</div>
             <div>
-              <h1 style={{ margin: 0, fontSize: 28, fontFamily: "'Oswald', sans-serif", color: T.text, letterSpacing: 2 }}>{team.name}</h1>
+              <h1 style={{ margin: 0, fontSize: 28, fontFamily: "'Oswald', sans-serif", color: T.text, letterSpacing: 2 }}>{currentUser.name}</h1>
               <div style={{ display: "flex", gap: 10, marginTop: 6, alignItems: "center", flexWrap: "wrap" }}>
                 <CategoryBadge categoryId={team.category} />
                 <span style={{ color: T.textMuted, fontSize: 13 }}>📍{team.region}</span>
               </div>
             </div>
           </div>
+
+          {/* 成績 */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 12, marginBottom: 28 }}>
             {[
               { label: "勝利", value: team.wins, color: "#16a34a", bg: "#dcfce7" },
@@ -686,10 +722,71 @@ function MyTeamPage({ currentUser }) {
               </div>
             ))}
           </div>
+
+          {/* チーム設定 */}
           <h3 style={{ color: T.accent, fontFamily: "'Oswald', sans-serif", marginBottom: 12, fontSize: 16 }}>チーム設定</h3>
           <div style={{ display: "grid", gap: 10 }}>
-            {["チーム名を変更", "チーム紹介を編集", "カテゴリ・地域を変更", "メンバー管理", "パスワード変更"].map((label, i) => (
-              <button key={i} style={{
+            {/* チーム名を変更（実装済み） */}
+            <div>
+              <button onClick={() => openEdit(editTarget === "name" ? null : "name")} style={{
+                width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center",
+                padding: "13px 16px", borderRadius: editTarget === "name" ? "10px 10px 0 0" : 10,
+                border: `1.5px solid ${editTarget === "name" ? T.accent : T.border}`,
+                background: editTarget === "name" ? T.accentLight : T.cardAlt,
+                color: T.text, cursor: "pointer", fontSize: 14,
+                fontFamily: "'Noto Sans JP', sans-serif", textAlign: "left", transition: "all 0.15s",
+              }}>
+                <span>✏️ チーム名を変更</span>
+                <span style={{ color: T.accent, fontWeight: 700 }}>{editTarget === "name" ? "▲" : "→"}</span>
+              </button>
+
+              {/* インライン編集パネル */}
+              {editTarget === "name" && (
+                <div style={{
+                  border: `1.5px solid ${T.accent}`, borderTop: "none",
+                  borderRadius: "0 0 10px 10px", background: "#fff",
+                  padding: "20px 18px", animation: "fadeIn 0.15s ease",
+                }}>
+                  <label style={{ display: "block", marginBottom: 8, color: T.textSub, fontSize: 12, fontWeight: 600 }}>
+                    新しいチーム名
+                  </label>
+                  <input
+                    style={inputStyle}
+                    value={editValue}
+                    onChange={e => setEditValue(e.target.value)}
+                    placeholder="チーム名を入力"
+                    maxLength={40}
+                    autoFocus
+                    onKeyDown={e => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") setEditTarget(null); }}
+                  />
+                  <div style={{ display: "flex", gap: 8, marginTop: 12, alignItems: "center" }}>
+                    <button onClick={handleSave} style={{
+                      padding: "9px 22px", borderRadius: 8, border: "none",
+                      background: saved ? "#16a34a" : `linear-gradient(135deg, ${T.accent}, #0d8044)`,
+                      color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer",
+                      transition: "all 0.2s", fontFamily: "'Noto Sans JP', sans-serif",
+                    }}>
+                      {saved ? "✓ 保存しました" : "保存する"}
+                    </button>
+                    <button onClick={() => setEditTarget(null)} style={{
+                      padding: "9px 18px", borderRadius: 8,
+                      border: `1px solid ${T.border}`, background: "transparent",
+                      color: T.textSub, cursor: "pointer", fontSize: 13,
+                      fontFamily: "'Noto Sans JP', sans-serif",
+                    }}>
+                      キャンセル
+                    </button>
+                    <span style={{ fontSize: 11, color: T.textMuted, marginLeft: "auto" }}>
+                      {editValue.length}/40
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* その他の設定（未実装・グレーアウト） */}
+            {["チーム紹介を編集", "カテゴリ・地域を変更", "メンバー管理", "パスワード変更"].map((label, i) => (
+              <button key={i} onClick={() => alert(`「${label}」は近日実装予定です！`)} style={{
                 display: "flex", justifyContent: "space-between", alignItems: "center",
                 padding: "13px 16px", borderRadius: 10, border: `1px solid ${T.border}`,
                 background: T.cardAlt, color: T.text, cursor: "pointer", fontSize: 14,
@@ -778,7 +875,7 @@ export default function App() {
       case "teams": return <TeamsPage onChallenge={setChallengeTarget} />;
       case "requests": return <RequestsPage />;
       case "matches": return <MatchesPage />;
-      case "myteam": return <MyTeamPage currentUser={currentUser} />;
+      case "myteam": return <MyTeamPage currentUser={currentUser} onUpdateUser={setCurrentUser} />;
       default: return <HomePage setCurrentPage={setCurrentPage} />;
     }
   };
