@@ -665,6 +665,7 @@ function MyTeamPage({ currentUser, onUpdateUser }) {
   const [newPw, setNewPw] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
   const [pwError, setPwError] = useState("");
+  const [showPw, setShowPw] = useState([false, false, false]);
 
   const team = SAMPLE_TEAMS.find(t => t.name === currentUser.name) || {
     ...currentUser, level: 3, wins: 0, losses: 0, draws: 0, logo: "⚽", founded: 2026,
@@ -896,8 +897,24 @@ function MyTeamPage({ currentUser, onUpdateUser }) {
               ].map((f, i) => (
                 <div key={i} style={{ marginBottom: 10 }}>
                   <label style={{ display: "block", marginBottom: 5, color: T.textSub, fontSize: 12, fontWeight: 600 }}>{f.label}</label>
-                  <input style={iStyle} type="password" value={f.val} onChange={e => f.set(e.target.value)}
-                    placeholder="••••••••" onFocus={focusBorder} onBlur={blurBorder} autoFocus={i === 0} />
+                  <div style={{ position: "relative" }}>
+                    <input style={{ ...iStyle, paddingRight: 42 }} type={showPw[i] ? "text" : "password"} value={f.val}
+                      onChange={e => f.set(e.target.value)}
+                      placeholder="••••••••" onFocus={focusBorder} onBlur={blurBorder} autoFocus={i === 0} />
+                    <button
+                      type="button"
+                      onClick={() => setShowPw(prev => prev.map((v, j) => j === i ? !v : v))}
+                      style={{
+                        position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
+                        background: "none", border: "none", cursor: "pointer", padding: 4,
+                        color: showPw[i] ? T.accent : T.textMuted, fontSize: 16, lineHeight: 1,
+                        transition: "color 0.15s",
+                      }}
+                      title={showPw[i] ? "隠す" : "表示"}
+                    >
+                      {showPw[i] ? "🙈" : "👁️"}
+                    </button>
+                  </div>
                 </div>
               ))}
               <SaveRow onSave={() => {
