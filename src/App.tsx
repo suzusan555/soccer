@@ -897,23 +897,16 @@ function MyTeamPage({ currentUser, onUpdateUser }) {
               ].map((f, i) => (
                 <div key={i} style={{ marginBottom: 10 }}>
                   <label style={{ display: "block", marginBottom: 5, color: T.textSub, fontSize: 12, fontWeight: 600 }}>{f.label}</label>
-                  <div style={{ position: "relative" }}>
-                    <input style={{ ...iStyle, paddingRight: 42 }} type={showPw[i] ? "text" : "password"} value={f.val}
+                  <div>
+                    <input style={iStyle} type={showPw[i] ? "text" : "password"} value={f.val}
                       onChange={e => f.set(e.target.value)}
                       placeholder="••••••••" onFocus={focusBorder} onBlur={blurBorder} autoFocus={i === 0} />
-                    <button
-                      type="button"
-                      onClick={() => setShowPw(prev => prev.map((v, j) => j === i ? !v : v))}
-                      style={{
-                        position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
-                        background: "none", border: "none", cursor: "pointer", padding: 4,
-                        color: showPw[i] ? T.accent : T.textMuted, fontSize: 16, lineHeight: 1,
-                        transition: "color 0.15s",
-                      }}
-                      title={showPw[i] ? "隠す" : "表示"}
-                    >
-                      {showPw[i] ? "🙈" : "👁️"}
-                    </button>
+                    <label style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, cursor: "pointer", fontSize: 12, color: T.textSub, userSelect: "none" }}>
+                      <input type="checkbox" checked={showPw[i]}
+                        onChange={() => setShowPw(prev => prev.map((v, j) => j === i ? !v : v))}
+                        style={{ cursor: "pointer", accentColor: T.accent, width: 14, height: 14 }} />
+                      パスワードを表示
+                    </label>
                   </div>
                 </div>
               ))}
