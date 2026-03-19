@@ -309,7 +309,7 @@ function LoginPage({ onLogin }) {
                 <input style={inputStyle} type="password" placeholder="パスワードを入力" value={password} onChange={e => setPassword(e.target.value)}
                   onFocus={e => e.target.style.borderColor = T.accent} onBlur={e => e.target.style.borderColor = T.border} />
               </div>
-              <GreenBtn onClick={() => onLogin({ id: 1, name: "FC Thunder Bolt", category: "shakaijin", region: "関東" })}
+              <GreenBtn onClick={() => onLogin({ id: 1, name: "FC Thunder Bolt", category: "shakaijin", region: "関東", desc: "社会人リーグ所属。週末活動中。試合相手募集！", members: ["田中 太郎", "佐藤 次郎", "鈴木 三郎"], password: "password" })}
                 style={{ width: "100%", padding: 14, fontSize: 16, letterSpacing: 2 }}>
                 ログイン
               </GreenBtn>
@@ -340,7 +340,7 @@ function LoginPage({ onLogin }) {
                 <label style={{ display: "block", marginBottom: 6, color: T.textSub, fontSize: 12, fontWeight: 600 }}>パスワード</label>
                 <input style={inputStyle} type="password" placeholder="パスワードを設定" value={regData.password} onChange={e => setRegData({ ...regData, password: e.target.value })} />
               </div>
-              <GreenBtn onClick={() => onLogin({ id: 99, name: regData.name || "My Team", category: regData.category, region: regData.region })}
+              <GreenBtn onClick={() => onLogin({ id: 99, name: regData.name || "My Team", category: regData.category, region: regData.region, desc: "", members: [], password: regData.password })}
                 style={{ width: "100%", padding: 14, fontSize: 16, letterSpacing: 2 }}>
                 チームを登録
               </GreenBtn>
@@ -648,43 +648,105 @@ function MatchesPage() {
   );
 }
 function MyTeamPage({ currentUser, onUpdateUser }) {
-  const [editTarget, setEditTarget] = useState(null); // null | "name"
-  const [editValue, setEditValue] = useState("");
-  const [saved, setSaved] = useState(false);
+  const [editTarget, setEditTarget] = useState(null);
+  const [savedTarget, setSavedTarget] = useState(null);
+  // name
+  const [editName, setEditName] = useState("");
+  // desc
+  const [editDesc, setEditDesc] = useState("");
+  // category/region
+  const [editCategory, setEditCategory] = useState("");
+  const [editRegion, setEditRegion] = useState("");
+  // members
+  const [editMembers, setEditMembers] = useState([]);
+  const [newMemberInput, setNewMemberInput] = useState("");
+  // password
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [pwError, setPwError] = useState("");
 
   const team = SAMPLE_TEAMS.find(t => t.name === currentUser.name) || {
-    ...currentUser, level: 3, wins: 0, losses: 0, draws: 0, logo: "⚽",
-    desc: "まだ説明がありません。", members: 0, founded: 2026,
+    ...currentUser, level: 3, wins: 0, losses: 0, draws: 0, logo: "⚽", founded: 2026,
   };
-  const cat = CATEGORIES.find(c => c.id === team.category);
+  const cat = CATEGORIES.find(c => c.id === (currentUser.category || team.category));
 
-  const openEdit = (target) => {
-    if (target === "name") {
-      setEditValue(currentUser.name);
-      setEditTarget("name");
-      setSaved(false);
-    }
-  };
-
-  const handleSave = () => {
-    if (editTarget === "name") {
-      const trimmed = editValue.trim();
-      if (!trimmed) return;
-      onUpdateUser({ ...currentUser, name: trimmed });
-      setSaved(true);
-      setTimeout(() => {
-        setEditTarget(null);
-        setSaved(false);
-      }, 900);
-    }
+  const toggle = (target, onOpen) => {
+    if (editTarget === target) { setEditTarget(null); return; }
+    setSavedTarget(null);
+    setPwError("");
+    onOpen?.();
+    setEditTarget(target);
   };
 
-  const inputStyle = {
-    width: "100%", padding: "11px 14px", borderRadius: 9,
-    border: `1.5px solid ${T.accent}`, background: "#fff",
-    color: T.text, fontSize: 15, outline: "none", boxSizing: "border-box",
-    fontFamily: "'Noto Sans JP', sans-serif", transition: "border 0.15s",
+  const saveAndClose = (target, updateFn) => {
+    onUpdateUser(updateFn(currentUser));
+    setSavedTarget(target);
+    setTimeout(() => { setEditTarget(null); setSavedTarget(null); }, 900);
   };
+
+  const iStyle = {
+    width: "100%", padding: "10px 13px", borderRadius: 8,
+    border: `1.5px solid ${T.border}`, background: "#fff",
+    color: T.text, fontSize: 13, outline: "none", boxSizing: "border-box",
+    fontFamily: "'Noto Sans JP', sans-serif",
+  };
+  const focusBorder = (e) => e.target.style.borderColor = T.accent;
+  const blurBorder = (e) => e.target.style.borderColor = T.border;
+
+  const SettingPanel = ({ id, icon, label, children }) => {
+    const isOpen = editTarget === id;
+    return (
+      <div>
+        <button onClick={() => toggle(id, () => {
+          if (id === "name") setEditName(currentUser.name);
+          if (id === "desc") setEditDesc(currentUser.desc || "");
+          if (id === "category") { setEditCategory(currentUser.category || team.category); setEditRegion(currentUser.region || team.region); }
+          if (id === "members") setEditMembers([...(currentUser.members || [])]);
+          if (id === "password") { setCurrentPw(""); setNewPw(""); setConfirmPw(""); }
+        })} style={{
+          width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center",
+          padding: "13px 16px", borderRadius: isOpen ? "10px 10px 0 0" : 10,
+          border: `1.5px solid ${isOpen ? T.accent : T.border}`,
+          background: isOpen ? T.accentLight : T.cardAlt,
+          color: T.text, cursor: "pointer", fontSize: 14,
+          fontFamily: "'Noto Sans JP', sans-serif", transition: "all 0.15s",
+        }}
+        onMouseEnter={e => { if (!isOpen) e.currentTarget.style.background = "#eef7f1"; }}
+        onMouseLeave={e => { if (!isOpen) e.currentTarget.style.background = T.cardAlt; }}
+        >
+          <span>{icon} {label}</span>
+          <span style={{ color: T.accent, fontWeight: 700 }}>{isOpen ? "▲" : "→"}</span>
+        </button>
+        {isOpen && (
+          <div style={{
+            border: `1.5px solid ${T.accent}`, borderTop: "none",
+            borderRadius: "0 0 10px 10px", background: "#fff", padding: "20px 18px",
+          }}>
+            {children}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const SaveRow = ({ onSave, disabled = false }) => (
+    <div style={{ display: "flex", gap: 8, marginTop: 14, alignItems: "center" }}>
+      <button onClick={onSave} disabled={disabled} style={{
+        padding: "9px 22px", borderRadius: 8, border: "none",
+        background: savedTarget === editTarget ? "#16a34a" : disabled ? "#ccc" : `linear-gradient(135deg, ${T.accent}, #0d8044)`,
+        color: "#fff", fontWeight: 700, fontSize: 13, cursor: disabled ? "not-allowed" : "pointer",
+        transition: "all 0.2s", fontFamily: "'Noto Sans JP', sans-serif",
+      }}>
+        {savedTarget === editTarget ? "✓ 保存しました" : "保存する"}
+      </button>
+      <button onClick={() => setEditTarget(null)} style={{
+        padding: "9px 18px", borderRadius: 8, border: `1px solid ${T.border}`,
+        background: "transparent", color: T.textSub, cursor: "pointer", fontSize: 13,
+        fontFamily: "'Noto Sans JP', sans-serif",
+      }}>キャンセル</button>
+    </div>
+  );
 
   return (
     <div style={{ padding: "32px 20px", maxWidth: 900, margin: "0 auto" }}>
@@ -699,22 +761,25 @@ function MyTeamPage({ currentUser, onUpdateUser }) {
               display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40,
               border: `3px solid ${cat?.color || T.accent}30`,
             }}>{team.logo}</div>
-            <div>
+            <div style={{ flex: 1 }}>
               <h1 style={{ margin: 0, fontSize: 28, fontFamily: "'Oswald', sans-serif", color: T.text, letterSpacing: 2 }}>{currentUser.name}</h1>
               <div style={{ display: "flex", gap: 10, marginTop: 6, alignItems: "center", flexWrap: "wrap" }}>
-                <CategoryBadge categoryId={team.category} />
-                <span style={{ color: T.textMuted, fontSize: 13 }}>📍{team.region}</span>
+                <CategoryBadge categoryId={currentUser.category || team.category} />
+                <span style={{ color: T.textMuted, fontSize: 13 }}>📍{currentUser.region || team.region}</span>
               </div>
+              {(currentUser.desc || team.desc) && (
+                <p style={{ margin: "8px 0 0", fontSize: 13, color: T.textSub, lineHeight: 1.6 }}>{currentUser.desc || team.desc}</p>
+              )}
             </div>
           </div>
 
           {/* 成績 */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 12, marginBottom: 28 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 12, marginBottom: 28 }}>
             {[
               { label: "勝利", value: team.wins, color: "#16a34a", bg: "#dcfce7" },
               { label: "敗北", value: team.losses, color: "#dc2626", bg: "#fee2e2" },
               { label: "引分", value: team.draws, color: "#d97706", bg: "#fef3c7" },
-              { label: "メンバー", value: team.members || "—", color: "#7c3aed", bg: "#ede9fe" },
+              { label: "メンバー", value: (currentUser.members || []).length || team.members || 0, color: "#7c3aed", bg: "#ede9fe" },
             ].map((s, i) => (
               <div key={i} style={{ textAlign: "center", padding: 16, borderRadius: 14, background: s.bg, border: `1px solid ${s.color}18` }}>
                 <div style={{ fontSize: 28, fontWeight: 900, color: s.color, fontFamily: "'Oswald', sans-serif" }}>{s.value}</div>
@@ -726,79 +791,124 @@ function MyTeamPage({ currentUser, onUpdateUser }) {
           {/* チーム設定 */}
           <h3 style={{ color: T.accent, fontFamily: "'Oswald', sans-serif", marginBottom: 12, fontSize: 16 }}>チーム設定</h3>
           <div style={{ display: "grid", gap: 10 }}>
-            {/* チーム名を変更（実装済み） */}
-            <div>
-              <button onClick={() => openEdit(editTarget === "name" ? null : "name")} style={{
-                width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center",
-                padding: "13px 16px", borderRadius: editTarget === "name" ? "10px 10px 0 0" : 10,
-                border: `1.5px solid ${editTarget === "name" ? T.accent : T.border}`,
-                background: editTarget === "name" ? T.accentLight : T.cardAlt,
-                color: T.text, cursor: "pointer", fontSize: 14,
-                fontFamily: "'Noto Sans JP', sans-serif", textAlign: "left", transition: "all 0.15s",
-              }}>
-                <span>✏️ チーム名を変更</span>
-                <span style={{ color: T.accent, fontWeight: 700 }}>{editTarget === "name" ? "▲" : "→"}</span>
-              </button>
 
-              {/* インライン編集パネル */}
-              {editTarget === "name" && (
-                <div style={{
-                  border: `1.5px solid ${T.accent}`, borderTop: "none",
-                  borderRadius: "0 0 10px 10px", background: "#fff",
-                  padding: "20px 18px", animation: "fadeIn 0.15s ease",
-                }}>
-                  <label style={{ display: "block", marginBottom: 8, color: T.textSub, fontSize: 12, fontWeight: 600 }}>
-                    新しいチーム名
-                  </label>
-                  <input
-                    style={inputStyle}
-                    value={editValue}
-                    onChange={e => setEditValue(e.target.value)}
-                    placeholder="チーム名を入力"
-                    maxLength={40}
-                    autoFocus
-                    onKeyDown={e => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") setEditTarget(null); }}
+            {/* 1. チーム名を変更 */}
+            <SettingPanel id="name" icon="✏️" label="チーム名を変更">
+              <label style={{ display: "block", marginBottom: 6, color: T.textSub, fontSize: 12, fontWeight: 600 }}>新しいチーム名</label>
+              <input style={iStyle} value={editName} onChange={e => setEditName(e.target.value)}
+                placeholder="チーム名を入力" maxLength={40} autoFocus
+                onFocus={focusBorder} onBlur={blurBorder}
+                onKeyDown={e => { if (e.key === "Enter" && editName.trim()) saveAndClose("name", u => ({ ...u, name: editName.trim() })); }}
+              />
+              <div style={{ textAlign: "right", fontSize: 11, color: T.textMuted, marginTop: 4 }}>{editName.length}/40</div>
+              <SaveRow disabled={!editName.trim()} onSave={() => saveAndClose("name", u => ({ ...u, name: editName.trim() }))} />
+            </SettingPanel>
+
+            {/* 2. チーム紹介を編集 */}
+            <SettingPanel id="desc" icon="📝" label="チーム紹介を編集">
+              <label style={{ display: "block", marginBottom: 6, color: T.textSub, fontSize: 12, fontWeight: 600 }}>チーム紹介文</label>
+              <textarea style={{ ...iStyle, resize: "vertical", minHeight: 90, lineHeight: 1.6 }}
+                value={editDesc} onChange={e => setEditDesc(e.target.value)}
+                placeholder="チームのアピールポイントや募集情報を入力..."
+                maxLength={200} autoFocus
+                onFocus={focusBorder} onBlur={blurBorder}
+              />
+              <div style={{ textAlign: "right", fontSize: 11, color: T.textMuted, marginTop: 4 }}>{editDesc.length}/200</div>
+              <SaveRow onSave={() => saveAndClose("desc", u => ({ ...u, desc: editDesc }))} />
+            </SettingPanel>
+
+            {/* 3. カテゴリ・地域を変更 */}
+            <SettingPanel id="category" icon="🏷️" label="カテゴリ・地域を変更">
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <label style={{ display: "block", marginBottom: 6, color: T.textSub, fontSize: 12, fontWeight: 600 }}>カテゴリ</label>
+                  <select style={{ ...iStyle, appearance: "none" }} value={editCategory} onChange={e => setEditCategory(e.target.value)}
+                    onFocus={focusBorder} onBlur={blurBorder}>
+                    {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: "block", marginBottom: 6, color: T.textSub, fontSize: 12, fontWeight: 600 }}>地域</label>
+                  <select style={{ ...iStyle, appearance: "none" }} value={editRegion} onChange={e => setEditRegion(e.target.value)}
+                    onFocus={focusBorder} onBlur={blurBorder}>
+                    {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                </div>
+              </div>
+              <SaveRow onSave={() => saveAndClose("category", u => ({ ...u, category: editCategory, region: editRegion }))} />
+            </SettingPanel>
+
+            {/* 4. メンバー管理 */}
+            <SettingPanel id="members" icon="👥" label="メンバー管理">
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ display: "block", marginBottom: 8, color: T.textSub, fontSize: 12, fontWeight: 600 }}>
+                  メンバー一覧（{editMembers.length}人）
+                </label>
+                {editMembers.length === 0 && (
+                  <p style={{ color: T.textMuted, fontSize: 13, padding: "10px 0" }}>まだメンバーが登録されていません</p>
+                )}
+                <div style={{ display: "grid", gap: 6, maxHeight: 200, overflowY: "auto", marginBottom: 12 }}>
+                  {editMembers.map((m, i) => (
+                    <div key={i} style={{
+                      display: "flex", justifyContent: "space-between", alignItems: "center",
+                      padding: "8px 12px", borderRadius: 8, background: T.cardAlt, border: `1px solid ${T.border}`,
+                    }}>
+                      <span style={{ fontSize: 13 }}>👤 {m}</span>
+                      <button onClick={() => setEditMembers(editMembers.filter((_, j) => j !== i))} style={{
+                        background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: 16, lineHeight: 1,
+                      }}>×</button>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input style={{ ...iStyle, flex: 1 }} value={newMemberInput}
+                    onChange={e => setNewMemberInput(e.target.value)}
+                    placeholder="メンバー名を入力"
+                    onFocus={focusBorder} onBlur={blurBorder}
+                    onKeyDown={e => {
+                      if (e.key === "Enter" && newMemberInput.trim()) {
+                        setEditMembers([...editMembers, newMemberInput.trim()]);
+                        setNewMemberInput("");
+                      }
+                    }}
                   />
-                  <div style={{ display: "flex", gap: 8, marginTop: 12, alignItems: "center" }}>
-                    <button onClick={handleSave} style={{
-                      padding: "9px 22px", borderRadius: 8, border: "none",
-                      background: saved ? "#16a34a" : `linear-gradient(135deg, ${T.accent}, #0d8044)`,
-                      color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer",
-                      transition: "all 0.2s", fontFamily: "'Noto Sans JP', sans-serif",
-                    }}>
-                      {saved ? "✓ 保存しました" : "保存する"}
-                    </button>
-                    <button onClick={() => setEditTarget(null)} style={{
-                      padding: "9px 18px", borderRadius: 8,
-                      border: `1px solid ${T.border}`, background: "transparent",
-                      color: T.textSub, cursor: "pointer", fontSize: 13,
-                      fontFamily: "'Noto Sans JP', sans-serif",
-                    }}>
-                      キャンセル
-                    </button>
-                    <span style={{ fontSize: 11, color: T.textMuted, marginLeft: "auto" }}>
-                      {editValue.length}/40
-                    </span>
-                  </div>
+                  <button onClick={() => { if (newMemberInput.trim()) { setEditMembers([...editMembers, newMemberInput.trim()]); setNewMemberInput(""); } }} style={{
+                    padding: "10px 16px", borderRadius: 8, border: "none",
+                    background: T.accent, color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 13,
+                    whiteSpace: "nowrap",
+                  }}>＋ 追加</button>
+                </div>
+              </div>
+              <SaveRow onSave={() => saveAndClose("members", u => ({ ...u, members: editMembers }))} />
+            </SettingPanel>
+
+            {/* 5. パスワード変更 */}
+            <SettingPanel id="password" icon="🔒" label="パスワード変更">
+              {pwError && (
+                <div style={{ padding: "8px 12px", borderRadius: 8, background: "#fee2e2", color: "#dc2626", fontSize: 13, marginBottom: 12 }}>
+                  ⚠️ {pwError}
                 </div>
               )}
-            </div>
+              {[
+                { label: "現在のパスワード", val: currentPw, set: setCurrentPw },
+                { label: "新しいパスワード", val: newPw, set: setNewPw },
+                { label: "新しいパスワード（確認）", val: confirmPw, set: setConfirmPw },
+              ].map((f, i) => (
+                <div key={i} style={{ marginBottom: 10 }}>
+                  <label style={{ display: "block", marginBottom: 5, color: T.textSub, fontSize: 12, fontWeight: 600 }}>{f.label}</label>
+                  <input style={iStyle} type="password" value={f.val} onChange={e => f.set(e.target.value)}
+                    placeholder="••••••••" onFocus={focusBorder} onBlur={blurBorder} autoFocus={i === 0} />
+                </div>
+              ))}
+              <SaveRow onSave={() => {
+                setPwError("");
+                if (currentPw !== (currentUser.password || "password")) { setPwError("現在のパスワードが正しくありません"); return; }
+                if (newPw.length < 6) { setPwError("パスワードは6文字以上で入力してください"); return; }
+                if (newPw !== confirmPw) { setPwError("新しいパスワードが一致しません"); return; }
+                saveAndClose("password", u => ({ ...u, password: newPw }));
+              }} />
+            </SettingPanel>
 
-            {/* その他の設定（未実装・グレーアウト） */}
-            {["チーム紹介を編集", "カテゴリ・地域を変更", "メンバー管理", "パスワード変更"].map((label, i) => (
-              <button key={i} onClick={() => alert(`「${label}」は近日実装予定です！`)} style={{
-                display: "flex", justifyContent: "space-between", alignItems: "center",
-                padding: "13px 16px", borderRadius: 10, border: `1px solid ${T.border}`,
-                background: T.cardAlt, color: T.text, cursor: "pointer", fontSize: 14,
-                fontFamily: "'Noto Sans JP', sans-serif", textAlign: "left", transition: "all 0.15s",
-              }}
-              onMouseEnter={e => e.currentTarget.style.background = T.accentLight}
-              onMouseLeave={e => e.currentTarget.style.background = T.cardAlt}
-              >
-                {label}
-                <span style={{ color: T.textMuted }}>→</span>
-              </button>
-            ))}
           </div>
         </div>
       </Card>
